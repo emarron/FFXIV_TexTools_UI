@@ -2088,5 +2088,67 @@ namespace FFXIV_TexTools
             EyeDiffuseCreator.ShowWindow(this);
 
         }
+        private async void Menu_DumpTextures_Click(object sender, RoutedEventArgs e)
+        {
+            var folderDialog = new System.Windows.Forms.FolderBrowserDialog();
+            if (folderDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            {
+                var outputFolder = folderDialog.SelectedPath;
+                await LockUi("Dumping Textures".L());
+                try
+                {
+                    await Task.Run(async () =>
+                    {
+                        // Get the full item list from the cache
+                        var items = await XivCache.GetFullItemList();
+
+                        // Create a read-only transaction to access the cache
+                        using (var tx = ModTransaction.BeginReadonlyTransaction())
+                        {
+                            foreach (var item in items)
+                            {
+                                // Get the dependency root for each item
+                                var root = await XivCache.GetFirstRoot(item.GetRootInfo().ToString());
+                                if (root != null)
+                                {
+                                    // Get all the texture files for the item
+                                    var textureFiles = await root.GetTextureFiles(-1, tx);
+                                    foreach (var textureFile in textureFiles)
+                                    {
+                                        // Read the texture data from the cache
+                                        var textureData = await Dat.ReadFile(textureFile, false, tx);
+
+                                        // Extract the relevant parts of the texture path
+                                        var texturePath = textureFile.Replace("\\", "/");
+                                        var parts = texturePath.Split('/');
+                                        var nestedPath = Path.Combine(parts[0], parts[1], parts[2], "texture");
+
+                                        // Create the nested directory structure
+                                        var outputDirectory = Path.Combine(outputFolder, nestedPath);
+                                        Directory.CreateDirectory(outputDirectory);
+
+                                        // Generate the output file path
+                                        var fileName = Path.GetFileName(textureFile);
+                                        var outputPath = Path.Combine(outputDirectory, fileName);
+
+                                        // Write the texture data to a file in the output directory
+                                        File.WriteAllBytes(outputPath, textureData);
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+                catch (Exception ex)
+                {
+                    while (ex.InnerException != null)
+                    {
+                        ex = ex.InnerException;
+                    }
+                    FlexibleMessageBox.Show("Unable to dump textures.\n\nError:".L() + ex.Message, "Texture Dump Error".L(), MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+                await UnlockUi();
+            }
+        }
     }
 }
