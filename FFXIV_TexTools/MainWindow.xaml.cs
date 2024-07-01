@@ -2094,6 +2094,8 @@ namespace FFXIV_TexTools
             if (folderDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
             {
                 var outputFolder = folderDialog.SelectedPath;
+                var errorLogPath = Path.Combine(outputFolder, "errors.txt");
+
                 await LockUi("Dumping Textures".L());
                 try
                 {
@@ -2115,24 +2117,37 @@ namespace FFXIV_TexTools
                                     var textureFiles = await root.GetTextureFiles(-1, tx);
                                     foreach (var textureFile in textureFiles)
                                     {
-                                        // Read the texture data from the cache
-                                        var textureData = await Dat.ReadFile(textureFile, false, tx);
+                                        try
+                                        {
+                                            // Read the texture data from the cache
+                                            var textureData = await Dat.ReadFile(textureFile, false, tx);
 
-                                        // Extract the relevant parts of the texture path
-                                        var texturePath = textureFile.Replace("\\", "/");
-                                        var parts = texturePath.Split('/');
-                                        var nestedPath = Path.Combine(parts[0], parts[1], parts[2], "texture");
+                                            // Extract the relevant parts of the texture path
+                                            var texturePath = textureFile.Replace("\\", "/");
+                                            var parts = texturePath.Split('/');
+                                            var nestedPath = Path.Combine(parts[0], parts[1], parts[2], "texture");
 
-                                        // Create the nested directory structure
-                                        var outputDirectory = Path.Combine(outputFolder, nestedPath);
-                                        Directory.CreateDirectory(outputDirectory);
+                                            // Create the nested directory structure
+                                            var outputDirectory = Path.Combine(outputFolder, nestedPath);
+                                            Directory.CreateDirectory(outputDirectory);
 
-                                        // Generate the output file path
-                                        var fileName = Path.GetFileName(textureFile);
-                                        var outputPath = Path.Combine(outputDirectory, fileName);
+                                            // Generate the output file path
+                                            var fileName = Path.GetFileName(textureFile);
+                                            var outputPath = Path.Combine(outputDirectory, fileName);
 
-                                        // Write the texture data to a file in the output directory
-                                        File.WriteAllBytes(outputPath, textureData);
+                                            // Write the texture data to a file in the output directory
+                                            File.WriteAllBytes(outputPath, textureData);
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            // Log the error to the errors.txt file
+                                            using (var writer = new StreamWriter(errorLogPath, true))
+                                            {
+                                                writer.WriteLine($"Error processing file: {textureFile}");
+                                                writer.WriteLine($"Error message: {ex.Message}");
+                                                writer.WriteLine();
+                                            }
+                                        }
                                     }
                                 }
                             }
