@@ -2110,6 +2110,12 @@ namespace FFXIV_TexTools
                         {
                             foreach (var item in items)
                             {
+                                // Check if all items have been processed
+                                if (processedItems.Count == items.Count)
+                                {
+                                    break; // Exit the loop gracefully
+                                }
+
                                 var rootString = item.GetRootInfo().ToString();
 
                                 // Check if the item has already been processed
