@@ -2094,6 +2094,8 @@ namespace FFXIV_TexTools
             if (folderDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
             {
                 var outputFolder = folderDialog.SelectedPath;
+                var errorLogPath = Path.Combine(outputFolder, "errors.txt");
+
                 await LockUi("Dumping Textures".L());
                 try
                 {
@@ -2101,38 +2103,61 @@ namespace FFXIV_TexTools
                     {
                         // Get the full item list from the cache
                         var items = await XivCache.GetFullItemList();
+                        var processedItems = new HashSet<string>();
 
                         // Create a read-only transaction to access the cache
                         using (var tx = ModTransaction.BeginReadonlyTransaction())
                         {
                             foreach (var item in items)
                             {
+                                var rootString = item.GetRootInfo().ToString();
+
+                                // Check if the item has already been processed
+                                if (processedItems.Contains(rootString))
+                                    continue;
+
+                                // Mark the item as processed
+                                processedItems.Add(rootString);
+
                                 // Get the dependency root for each item
-                                var root = await XivCache.GetFirstRoot(item.GetRootInfo().ToString());
+                                var root = await XivCache.GetFirstRoot(rootString);
                                 if (root != null)
                                 {
                                     // Get all the texture files for the item
                                     var textureFiles = await root.GetTextureFiles(-1, tx);
                                     foreach (var textureFile in textureFiles)
                                     {
-                                        // Read the texture data from the cache
-                                        var textureData = await Dat.ReadFile(textureFile, false, tx);
+                                        try
+                                        {
+                                            // Read the texture data from the cache
+                                            var textureData = await Dat.ReadFile(textureFile, false, tx);
 
-                                        // Extract the relevant parts of the texture path
-                                        var texturePath = textureFile.Replace("\\", "/");
-                                        var parts = texturePath.Split('/');
-                                        var nestedPath = Path.Combine(parts[0], parts[1], parts[2], "texture");
+                                            // Extract the relevant parts of the texture path
+                                            var texturePath = textureFile.Replace("\\", "/");
+                                            var parts = texturePath.Split('/');
+                                            var nestedPath = Path.Combine(parts[0], parts[1], parts[2], "texture");
 
-                                        // Create the nested directory structure
-                                        var outputDirectory = Path.Combine(outputFolder, nestedPath);
-                                        Directory.CreateDirectory(outputDirectory);
+                                            // Create the nested directory structure
+                                            var outputDirectory = Path.Combine(outputFolder, nestedPath);
+                                            Directory.CreateDirectory(outputDirectory);
 
-                                        // Generate the output file path
-                                        var fileName = Path.GetFileName(textureFile);
-                                        var outputPath = Path.Combine(outputDirectory, fileName);
+                                            // Generate the output file path
+                                            var fileName = Path.GetFileName(textureFile);
+                                            var outputPath = Path.Combine(outputDirectory, fileName);
 
-                                        // Write the texture data to a file in the output directory
-                                        File.WriteAllBytes(outputPath, textureData);
+                                            // Write the texture data to a file in the output directory
+                                            File.WriteAllBytes(outputPath, textureData);
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            // Log the error to the errors.txt file
+                                            using (var writer = new StreamWriter(errorLogPath, true))
+                                            {
+                                                writer.WriteLine($"Error processing file: {textureFile}");
+                                                writer.WriteLine($"Error message: {ex.Message}");
+                                                writer.WriteLine();
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -2147,7 +2172,10 @@ namespace FFXIV_TexTools
                     }
                     FlexibleMessageBox.Show("Unable to dump textures.\n\nError:".L() + ex.Message, "Texture Dump Error".L(), MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
-                await UnlockUi();
+                finally
+                {
+                    await UnlockUi();
+                }
             }
         }
     }
