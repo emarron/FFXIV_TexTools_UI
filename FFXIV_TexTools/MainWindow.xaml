@@ -92,6 +92,7 @@
                 <MenuItem Header="Dawntrail Upgrades">
                     <MenuItem Header="Upgrade Modpack" Click="UpdateModpack_Click"/>
                     <MenuItem Header="Index Texture Creator" Click="IndexTextureCreator_Click"/>
+                    <MenuItem Header="Batch Index Texture Creator" Click="BatchIndexTextureCreator_Click"/>
                     <MenuItem Header="Hair Texture Converter" Click="HairTextureConverter_Click"/>
                     <MenuItem Header="Eye Diffuse Creator" Click="IrisDiffuseCreator_Click"/>
                 </MenuItem>
@@ -107,6 +108,7 @@
                     <MenuItem x:Name="Menu_CopyFile" Header="{Binding Source={x:Static resx:UIStrings.Copy_File}}" Click="Menu_CopyFile_Click"/>
                 </MenuItem>
                 <MenuItem x:Name="Menu_DumpTextures" Header="Dump Textures" Click="Menu_DumpTextures_Click"/>
+                <MenuItem x:Name="Menu_DumpMaterials" Header="Dump Materials" Click="Menu_DumpMaterials_Click"/>
             </MenuItem>
             <MenuItem Header="{Binding Source={x:Static resx:UIStrings.Options}}" StaysOpenOnClick="True">
                 <MenuItem x:Name="Menu_Customize" Header="{Binding Source={x:Static resx:UIStrings.Settings}}" Click="Customize_Click"/>

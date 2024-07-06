@@ -1,0 +1,50 @@
+<Window x:Class="FFXIV_TexTools.Views.Textures.BatchIndexTextureCreator"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:FFXIV_TexTools.Views.Textures"
+        mc:Ignorable="d"
+        Title="Batch Index Texture Creator" Height="350" Width="500"
+        WindowStartupLocation="CenterOwner">
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+
+        <TextBlock Grid.Row="0" Grid.Column="0" Text="Input Directory:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+        <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding InputDirectory, Mode=TwoWay}" IsReadOnly="True" Margin="0,0,0,10"/>
+        <Button Grid.Row="0" Grid.Column="2" Content="Browse" Click="SelectInputDirectory_Click" Padding="10,5" Margin="10,0,0,10"/>
+
+        <TextBlock Grid.Row="1" Grid.Column="0" Text="Output Directory:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+        <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding OutputDirectory, Mode=TwoWay}" IsReadOnly="True" Margin="0,0,0,10"/>
+        <Button Grid.Row="1" Grid.Column="2" Content="Browse" Click="SelectOutputDirectory_Click" Padding="10,5" Margin="10,0,0,10"/>
+
+        <TextBlock Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" TextWrapping="Wrap" Margin="0,10,0,10">
+            This tool will process all DDS files in the input directory (including subdirectories), 
+            create index textures, and save them as TGA files in the output directory while preserving 
+            the original folder structure.
+        </TextBlock>
+
+        <ProgressBar Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3" Height="20" Margin="0,10,0,10"/>
+
+        <TextBox Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="3" IsReadOnly="True" VerticalScrollBarVisibility="Auto" 
+                 Margin="0,10,0,10" TextWrapping="Wrap" 
+                 Text="Conversion log will appear here..."/>
+
+        <StackPanel Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="3" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="Convert" Click="Convert_Click" IsEnabled="{Binding ConvertEnabled}" Padding="20,5" Margin="0,0,10,0"/>
+            <Button Content="Close" Click="Close_Click" Padding="20,5"/>
+        </StackPanel>
+    </Grid>
+</Window>

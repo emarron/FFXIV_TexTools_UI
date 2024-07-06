@@ -2060,6 +2060,11 @@ namespace FFXIV_TexTools
             IndexTextureCreator.ShowWindow(this);
         }
 
+        private void BatchIndexTextureCreator_Click(object sender, RoutedEventArgs e)
+        {
+            BatchIndexTextureCreator.ShowWindow(this);
+        }
+
         private void HairTextureConverter_Click(object sender, RoutedEventArgs e)
         {
             HairTextureConverter.ShowWindow(this);
@@ -2177,6 +2182,97 @@ namespace FFXIV_TexTools
                         ex = ex.InnerException;
                     }
                     FlexibleMessageBox.Show("Unable to dump textures.\n\nError:".L() + ex.Message, "Texture Dump Error".L(), MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+                finally
+                {
+                    await UnlockUi();
+                }
+            }
+        }
+
+        private async void Menu_DumpMaterials_Click(object sender, RoutedEventArgs e)
+        {
+            var folderDialog = new System.Windows.Forms.FolderBrowserDialog();
+            if (folderDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            {
+                var outputFolder = folderDialog.SelectedPath;
+                var errorLogPath = Path.Combine(outputFolder, "errors.txt");
+
+                await LockUi("Dumping Materials".L());
+                try
+                {
+                    await Task.Run(async () =>
+                    {
+                        // Get the full item list from the cache
+                        var items = await XivCache.GetFullItemList();
+                        var processedItems = new HashSet<string>();
+
+                        // Create a read-only transaction to access the cache
+                        using (var tx = ModTransaction.BeginReadonlyTransaction())
+                        {
+                            foreach (var item in items)
+                            {
+                                var rootString = item.GetRootInfo().ToString();
+
+                                // Check if the item has already been processed
+                                if (processedItems.Contains(rootString))
+                                    continue;
+
+                                // Mark the item as processed
+                                processedItems.Add(rootString);
+
+                                // Get the dependency root for each item
+                                var root = await XivCache.GetFirstRoot(rootString);
+                                if (root != null)
+                                {
+                                    // Get all the material files for the item
+                                    var materialFiles = await root.GetMaterialFiles(-1, tx);
+                                    foreach (var materialFile in materialFiles)
+                                    {
+                                        try
+                                        {
+                                            // Read the material data from the cache
+                                            var materialData = await Dat.ReadFile(materialFile, false, tx);
+
+                                            // Extract the relevant parts of the material path
+                                            var materialPath = materialFile.Replace("\\", "/");
+                                            var parts = materialPath.Split('/');
+                                            var nestedPath = Path.Combine(parts[0], parts[1], parts[2], "material");
+
+                                            // Create the nested directory structure
+                                            var outputDirectory = Path.Combine(outputFolder, nestedPath);
+                                            Directory.CreateDirectory(outputDirectory);
+
+                                            // Generate the output file path
+                                            var fileName = Path.GetFileName(materialFile);
+                                            var outputPath = Path.Combine(outputDirectory, fileName);
+
+                                            // Write the material data to a file in the output directory
+                                            File.WriteAllBytes(outputPath, materialData);
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            // Log the error to the errors.txt file
+                                            using (var writer = new StreamWriter(errorLogPath, true))
+                                            {
+                                                writer.WriteLine($"Error processing file: {materialFile}");
+                                                writer.WriteLine($"Error message: {ex.Message}");
+                                                writer.WriteLine();
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+                catch (Exception ex)
+                {
+                    while (ex.InnerException != null)
+                    {
+                        ex = ex.InnerException;
+                    }
+                    FlexibleMessageBox.Show("Unable to dump materials.\n\nError:".L() + ex.Message, "Material Dump Error".L(), MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
                 finally
                 {
